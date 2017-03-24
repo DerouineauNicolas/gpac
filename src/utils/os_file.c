@@ -25,6 +25,7 @@
 
 #include <gpac/tools.h>
 #include <gpac/utf.h>
+#include <gpac/list.h>
 
 #if defined(_WIN32_WCE)
 
@@ -51,6 +52,12 @@
 #endif
 
 #endif
+
+typedef struct
+{
+    char *filename;//[255];
+    FILE* filepointer;
+}gf_file_pointer_tracker_element;
 
 
 GF_Err gf_rmdir(char *DirPathName)
@@ -296,6 +303,7 @@ u64 gf_file_modification_time(const char *filename)
 }
 
 static u32 gpac_file_handles = 0;
+static GF_List *file_handle_lst = NULL;
 GF_EXPORT
 u32 gf_file_handles_count()
 {
@@ -344,7 +352,16 @@ FILE *gf_temp_file_new(char ** const fileName)
 #endif
 
 	if (res) {
-		gpac_file_handles++;
+               gpac_file_handles++;
+       if(!file_handle_lst){
+           file_handle_lst=gf_list_new();
+       }
+       gf_file_pointer_tracker_element *new_file_struct;
+       GF_SAFEALLOC(new_file_struct, gf_file_pointer_tracker_element);
+       new_file_struct->filename=strdup(fileName);
+       new_file_struct->filepointer=res;
+
+       gf_list_add(file_handle_lst,(void*)new_file_struct);
 	}
 	return res;
 }
@@ -702,6 +719,15 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 
 	if (res) {
 		gpac_file_handles++;
+        if(!file_handle_lst){
+            file_handle_lst=gf_list_new();
+        }
+        gf_file_pointer_tracker_element *new_file_struct;
+        GF_SAFEALLOC(new_file_struct, gf_file_pointer_tracker_element);
+        new_file_struct->filename=strdup(file_name);
+        new_file_struct->filepointer=res;
+
+        gf_list_add(file_handle_lst,(void*)new_file_struct);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] file %s opened in mode %s - %d file handles\n", file_name, mode, gpac_file_handles));
 	} else {
 		if (strchr(mode, 'w') || strchr(mode, 'a')) {
@@ -719,9 +745,21 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 GF_EXPORT
 s32 gf_fclose(FILE *file)
 {
+    gf_file_pointer_tracker_element *new_file_struct;
+    int i;
 	if (file) {
 		assert(gpac_file_handles);
 		gpac_file_handles--;
+        for (i = 0; i < gf_list_count(file_handle_lst); i++) {
+            new_file_struct=(const gf_file_pointer_tracker_element*)gf_list_get(file_handle_lst, i);
+            //
+            if(new_file_struct->filepointer==file){
+                printf("closing file_name= %s \n",new_file_struct->filename);
+                gf_list_rem(file_handle_lst,i);
+                free(new_file_struct->filename);
+                gf_free(new_file_struct);
+            }
+        }
 	}
 	return fclose(file);
 }
