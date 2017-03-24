@@ -975,6 +975,7 @@ char * gf_get_default_cache_directory();
  * \return  number of open file handles
  */
 u32 gf_file_handles_count();
+void gf_display_and_free_filetracker();
 
 /*!	@} */
 

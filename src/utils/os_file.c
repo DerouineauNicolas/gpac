@@ -311,6 +311,21 @@ u32 gf_file_handles_count()
 }
 
 GF_EXPORT
+void gf_display_and_free_filetracker(){
+    gf_file_pointer_tracker_element *new_file_struct;
+    printf("Following file pointer remaining:");
+    int i;
+    for (i = 0; i < gf_list_count(file_handle_lst); i++) {
+        new_file_struct=(const gf_file_pointer_tracker_element*)gf_list_get(file_handle_lst, i);
+        printf("closing file_name= %s \n",new_file_struct->filename);
+        gf_list_rem(file_handle_lst,i);
+        free(new_file_struct->filename);
+        gf_free(new_file_struct);
+    }
+    gf_list_del(file_handle_lst);
+}
+
+GF_EXPORT
 FILE *gf_temp_file_new(char ** const fileName)
 {
 	FILE *res = NULL;
@@ -754,13 +769,14 @@ s32 gf_fclose(FILE *file)
             new_file_struct=(const gf_file_pointer_tracker_element*)gf_list_get(file_handle_lst, i);
             //
             if(new_file_struct->filepointer==file){
-                printf("closing file_name= %s \n",new_file_struct->filename);
+                //printf("closing file_name= %s \n",new_file_struct->filename);
                 gf_list_rem(file_handle_lst,i);
                 free(new_file_struct->filename);
                 gf_free(new_file_struct);
             }
         }
 	}
+
 	return fclose(file);
 }
 

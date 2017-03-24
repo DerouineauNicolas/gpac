@@ -845,6 +845,8 @@ void gf_memory_print()
 		int i=0;
 		assert(gpac_allocations_lock);
 
+        gf_display_and_free_filetracker();
+
 		gf_memory_log(GF_MEMORY_INFO, "\n[MemTracker] Printing the current state of allocations (%d open file handles) :\n", gf_file_handles_count());
 
 		/*lock*/
