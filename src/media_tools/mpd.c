@@ -924,19 +924,41 @@ void gf_mpd_prog_info_free(void *_item)
 void gf_mpd_segment_url_free(void *_ptr)
 {
 	GF_MPD_SegmentURL *ptr = (GF_MPD_SegmentURL *)_ptr;
+	double *duration;
+	int j=0;
+	
 	if (ptr->index) gf_free(ptr->index);
 	if (ptr->index_range) gf_free(ptr->index_range);
 	if (ptr->media) gf_free(ptr->media);
 	if (ptr->media_range) gf_free(ptr->media_range);
 	if (ptr->key_url) gf_free(ptr->key_url);
+	if (ptr->Segments_duration_list){
+		while(duration = gf_list_enum(ptr->Segments_duration_list,&j))
+			gf_free(duration);
+		gf_list_del(ptr->Segments_duration_list);
+	}
 	gf_free(ptr);
 }
 void gf_mpd_segment_base_free(void *_item)
 {
 	GF_MPD_SegmentBase *ptr = (GF_MPD_SegmentBase *)_item;
+	double *duration;
+	u64 *byterange;
+	int j=0;
 	if (ptr->initialization_segment) gf_mpd_url_free(ptr->initialization_segment);
 	if (ptr->representation_index) gf_mpd_url_free(ptr->representation_index);
 	if (ptr->index_range) gf_free(ptr->index_range);
+	if (ptr->Segments_Byte_Size_list){
+		while(byterange = gf_list_enum(ptr->Segments_Byte_Size_list,&j))
+			gf_free(byterange);
+		gf_list_del(ptr->Segments_Byte_Size_list);
+	}
+	j=0;
+	if (ptr->Segments_duration_list){
+		while(duration = gf_list_enum(ptr->Segments_duration_list,&j))
+			gf_free(duration);
+		gf_list_del(ptr->Segments_duration_list);
+	}
 	gf_free(ptr);
 }
 

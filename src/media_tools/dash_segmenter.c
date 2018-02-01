@@ -1051,10 +1051,9 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		segment_urls = gf_list_new();
 	}
 	
-	if(dasher->m3u8_name && dasher->single_file_mode)
-		segment_Byte_Offset_for_m3u8 = gf_list_new();
+	//if(dasher->m3u8_name && dasher->single_file_mode)
 	
-	segment_durations_for_m3u8 = gf_list_new();
+	
 
 	szCodecs[0] = 0;
 	nb_sync = 0;
@@ -1667,6 +1666,7 @@ restart_fragmentation_pass:
 							gf_cfg_set_key(dasher->dash_ctx, RepURLsSecName, szKey, szVal);
 						}
 						gf_list_add(segment_urls, seg_url);
+						segment_durations_for_m3u8 = gf_list_new();
 						seg_url->Segments_duration_list=segment_durations_for_m3u8;
 					}
 
@@ -2232,9 +2232,10 @@ restart_fragmentation_pass:
 
 			if (!simulation_pass) {
 				u64 idx_start_range, idx_end_range;
-				u64 *segment_size_in_bytes;
+				u64 segment_size_in_bytes;
+				u64 *segment_size_in_bytes_ptr;
 				Bool last_segment = flush_all_samples ? GF_TRUE : GF_FALSE;
-				GF_SAFEALLOC(segment_size_in_bytes,u64);
+				
 
 				if (dasher->subduration && (segment_start_time + MaxSegmentDuration/2 >= dasher->dash_scale * dasher->subduration)) {
 					//onDemand with subdur: if we are done dashing the content set last segment to TRUE to flush sidx
@@ -2245,8 +2246,13 @@ restart_fragmentation_pass:
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Closing segment %s at "LLU" us, at UTC "LLU" - segment AST "LLU" (MPD AST "LLU")\n", SegmentName, gf_sys_clock_high_res(), gf_net_get_utc(), generation_start_utc + period_duration + (u64)segment_start_time, generation_start_utc ));
 				gf_isom_close_segment(output, dasher->enable_sidx ? dasher->subsegs_per_sidx : 0, dasher->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dasher->daisy_chain_sidx, last_segment, GF_FALSE, dasher->segment_marker_4cc, &idx_start_range, &idx_end_range, segment_size_in_bytes);
-				if(dasher->m3u8_name && dasher->single_file_mode)
-					gf_list_add(segment_Byte_Offset_for_m3u8,segment_size_in_bytes);
+				if(dasher->m3u8_name && dasher->single_file_mode){
+					if(!segment_Byte_Offset_for_m3u8)
+						segment_Byte_Offset_for_m3u8 = gf_list_new();
+					GF_SAFEALLOC(segment_size_in_bytes_ptr,u64);
+					*segment_size_in_bytes_ptr=segment_size_in_bytes;
+					gf_list_add(segment_Byte_Offset_for_m3u8,segment_size_in_bytes_ptr);
+				}
 				nbFragmentInSegment = 0;
 				
 
@@ -2277,9 +2283,11 @@ restart_fragmentation_pass:
 				}
 			}
 			
-			GF_SAFEALLOC(seg_dur_m3u8_tmp,Double);
-			*seg_dur_m3u8_tmp=SegmentDuration;
-			gf_list_add(segment_durations_for_m3u8,seg_dur_m3u8_tmp);
+			if(segment_durations_for_m3u8){
+				GF_SAFEALLOC(seg_dur_m3u8_tmp,Double);
+				*seg_dur_m3u8_tmp=SegmentDuration;
+				gf_list_add(segment_durations_for_m3u8,seg_dur_m3u8_tmp);
+			}
 			SegmentDuration = 0;
 
 
@@ -2640,9 +2648,9 @@ restart_fragmentation_pass:
 				segmentbase->index_range->end_range = index_end_range;
 				segmentbase->presentation_time_offset = presentationTimeOffset;
 				if(dasher->single_file_mode && dasher->m3u8_name){
-					segmentbase->Segments_Byte_Size_list=gf_list_new();
+					//segmentbase->Segments_Byte_Size_list=gf_list_new();
 					segmentbase->Segments_Byte_Size_list=segment_Byte_Offset_for_m3u8;
-					segmentbase->Segments_duration_list=gf_list_new();
+					//segmentbase->Segments_duration_list=gf_list_new();
 					segmentbase->Segments_duration_list=segment_durations_for_m3u8;
 				}
 				if (!is_bs_switching) {
